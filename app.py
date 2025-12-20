@@ -6,6 +6,20 @@ from insightface.app import FaceAnalysis
 from firebase_utils import db, bucket
 import io
 
+import json
+import streamlit as st
+import firebase_admin
+from firebase_admin import credentials
+
+if not firebase_admin._apps:
+    cred = credentials.Certificate(
+        json.loads(st.secrets["FIREBASE_KEY"])
+    )
+    firebase_admin.initialize_app(cred)
+
+st.success("Firebase connected successfully ✅")
+
+
 st.set_page_config(page_title="Face Registration", layout="centered")
 st.title("📸 Face Registration")
 
