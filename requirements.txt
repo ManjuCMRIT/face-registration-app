@@ -1,0 +1,7 @@
+streamlit
+numpy
+Pillow
+insightface==0.7.3
+opencv-python-headless
+firebase-admin
+onnxruntime==1.16.3
