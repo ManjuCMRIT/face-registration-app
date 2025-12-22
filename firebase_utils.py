@@ -9,7 +9,9 @@ if not firebase_admin._apps:
     )
     firebase_admin.initialize_app(
         cred,
-        {"storageBucket": f"{json.loads(st.secrets['FIREBASE_KEY'])['project_id']}.appspot.com"}
+        {
+            "storageBucket": "face-registration-app.firebasestorage.app"
+        }
     )
 
 db = firestore.client()
