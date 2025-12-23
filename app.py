@@ -7,6 +7,7 @@ import io
 import json
 import firebase_admin
 from firebase_admin import credentials
+import cv2
 
 # ---------------- Firebase Init ----------------
 if not firebase_admin._apps:
@@ -23,11 +24,22 @@ st.success("Firebase connected successfully ✅")
 # ---------------- Config ----------------
 ANGLES = ["Front", "Left", "Right", "Up", "Down"]
 
+# ---------------- Helper Functions ----------------
 @st.cache_resource
 def load_model():
     app = FaceAnalysis(name="buffalo_l")
     app.prepare(ctx_id=0, det_size=(640, 640))
     return app
+
+def is_low_light(img_np, threshold=50):
+    gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+    brightness = np.mean(gray)
+    return brightness < threshold
+
+def is_blurry(img_np, threshold=100):
+    gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+    laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+    return laplacian_var < threshold
 
 model = load_model()
 
@@ -56,10 +68,7 @@ if st.session_state.step < len(ANGLES):
     st.subheader(f"📷 Capture {angle} Face")
     st.caption(f"Pose {st.session_state.step + 1} of 5")
 
-    camera_image = st.camera_input(
-        f"Take {angle} photo",
-        key=f"camera_{angle}"
-    )
+    camera_image = st.camera_input(f"Take {angle} photo", key=f"camera_{angle}")
 
     if camera_image:
         img = Image.open(camera_image).convert("RGB")
@@ -69,14 +78,16 @@ if st.session_state.step < len(ANGLES):
 
         if len(faces) != 1:
             st.error("❌ Exactly ONE face must be visible. Try again.")
+        elif is_low_light(img_np):
+            st.error("❌ Image too dark. Increase lighting and try again.")
+        elif is_blurry(img_np):
+            st.error("❌ Image too blurry. Keep camera steady and try again.")
         else:
             st.success(f"✅ {angle} face captured")
-
             st.session_state.captured[angle] = {
                 "image": img,
                 "embedding": faces[0].embedding
             }
-
             st.session_state.step += 1
             st.rerun()
 else:
