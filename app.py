@@ -1,6 +1,5 @@
 import streamlit as st
 import numpy as np
-import cv2
 from PIL import Image
 from insightface.app import FaceAnalysis
 from firebase_utils import db, bucket
@@ -16,9 +15,9 @@ if not firebase_admin._apps:
     )
     firebase_admin.initialize_app(cred)
 
+# ---------------- Page Config ----------------
 st.set_page_config(page_title="Face Registration", layout="centered")
 st.title("📸 Face Registration (Mobile Friendly)")
-
 st.success("Firebase connected successfully ✅")
 
 # ---------------- Config ----------------
@@ -33,6 +32,9 @@ def load_model():
 model = load_model()
 
 # ---------------- Session State ----------------
+if "step" not in st.session_state:
+    st.session_state.step = 0
+
 if "captured" not in st.session_state:
     st.session_state.captured = {}
 
@@ -47,28 +49,38 @@ st.info(
 
 st.markdown(f"### ✅ Captured: {len(st.session_state.captured)}/5")
 
-# ---------------- Capture Loop ----------------
-for angle in ANGLES:
-    if angle not in st.session_state.captured:
-        st.subheader(f"📷 Capture {angle} Face")
+# ---------------- Camera Capture (ONE at a time) ----------------
+if st.session_state.step < len(ANGLES):
+    angle = ANGLES[st.session_state.step]
 
-        camera_image = st.camera_input(f"Take {angle} photo")
+    st.subheader(f"📷 Capture {angle} Face")
+    st.caption(f"Pose {st.session_state.step + 1} of 5")
 
-        if camera_image:
-            img = Image.open(camera_image).convert("RGB")
-            img_np = np.array(img)
+    camera_image = st.camera_input(
+        f"Take {angle} photo",
+        key=f"camera_{angle}"
+    )
 
-            faces = model.get(img_np)
+    if camera_image:
+        img = Image.open(camera_image).convert("RGB")
+        img_np = np.array(img)
 
-            if len(faces) != 1:
-                st.error("❌ Exactly ONE face must be visible. Try again.")
-            else:
-                st.success(f"✅ {angle} face captured")
-                st.session_state.captured[angle] = {
-                    "image": img,
-                    "embedding": faces[0].embedding
-                }
-                st.rerun()
+        faces = model.get(img_np)
+
+        if len(faces) != 1:
+            st.error("❌ Exactly ONE face must be visible. Try again.")
+        else:
+            st.success(f"✅ {angle} face captured")
+
+            st.session_state.captured[angle] = {
+                "image": img,
+                "embedding": faces[0].embedding
+            }
+
+            st.session_state.step += 1
+            st.rerun()
+else:
+    st.success("🎯 All 5 face poses captured successfully!")
 
 # ---------------- Register Button ----------------
 if st.button("🚀 Register Face"):
@@ -77,7 +89,7 @@ if st.button("🚀 Register Face"):
         st.stop()
 
     if len(st.session_state.captured) != 5:
-        st.error("Please capture all 5 face poses")
+        st.error("Please capture all 5 face poses before registering")
         st.stop()
 
     embeddings = []
@@ -101,5 +113,6 @@ if st.button("🚀 Register Face"):
 
     st.success(f"🎉 Face registered successfully for {name}")
 
-    # Reset for next user
+    # Reset for next registration
     st.session_state.captured = {}
+    st.session_state.step = 0
