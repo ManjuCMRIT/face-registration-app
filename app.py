@@ -96,7 +96,7 @@ else:
 # ---------------- Register Button ----------------
 if st.button("🚀 Register Face"):
     if not name:
-        st.error("Please enter Student Name / ID")
+        st.error("Please enter USN(CAPS)")
         st.stop()
 
     if len(st.session_state.captured) != 5:
