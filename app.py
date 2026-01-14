@@ -51,7 +51,7 @@ if "captured" not in st.session_state:
     st.session_state.captured = {}
 
 # ---------------- UI ----------------
-name = st.text_input("Student Name / ID")
+name = st.text_input("USN(CAPS)")
 
 st.markdown("### 📌 Capture Instructions")
 st.info(
